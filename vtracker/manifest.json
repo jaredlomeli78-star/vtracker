@@ -1,0 +1,48 @@
+{
+  "name": "VTRACKER — Valorant Stats",
+  "short_name": "VTRACKER",
+  "description": "The ultimate Valorant stat tracker. Player profiles, match history, leaderboards and live match data.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#07070d",
+  "theme_color": "#00f5ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/home.png",
+      "sizes": "1280x720",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["games", "sports", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Leaderboards",
+      "short_name": "Leaderboard",
+      "description": "View top Radiant players",
+      "url": "/leaderboard.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Live Matches",
+      "short_name": "Live",
+      "description": "Track live matches in real time",
+      "url": "/live.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
