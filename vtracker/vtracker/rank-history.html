@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>VTRACKER — Rank History</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#07070d;--bg2:#0d0d1a;--cyan:#00f5ff;--mag:#ff00cc;--yel:#f5e642;--grn:#4ade80;--red:#f87171;--text:#dde1f0;--muted:#525870;--bdr:rgba(0,245,255,0.15);--gc:0 0 18px rgba(0,245,255,0.6);--gm:0 0 18px rgba(255,0,204,0.6);--orb:'Orbitron','Courier New',monospace;--raj:'Rajdhani','Arial Narrow',sans-serif;--mono:'Share Tech Mono','Courier New',monospace;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:var(--raj);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';pointer-events:none;position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);z-index:9999}
+    .grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(0,245,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.03) 1px,transparent 1px);background-size:48px 48px}
+    .z1{position:relative;z-index:1}
+
+    nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 5%;height:64px;background:rgba(7,7,13,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--bdr)}
+    .logo{font-family:var(--orb);font-weight:900;font-size:1.2rem;letter-spacing:4px;color:var(--cyan);text-shadow:var(--gc);text-decoration:none}
+    .logo em{color:var(--mag);text-shadow:var(--gm);font-style:normal}
+    .nav-links{display:flex;gap:2rem;list-style:none}
+    .nav-links a{font-family:var(--raj);font-weight:600;font-size:0.85rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color 0.2s}
+    .nav-links a:hover{color:var(--cyan)}
+    .nav-search{display:flex;border:1px solid rgba(0,245,255,0.2);background:rgba(255,255,255,0.03)}
+    .nav-search input{background:none;border:none;outline:none;font-family:var(--raj);font-size:0.85rem;color:var(--text);padding:6px 14px;width:200px}
+    .nav-search input::placeholder{color:var(--muted)}
+    .nav-search button{font-family:var(--orb);font-size:0.6rem;font-weight:700;letter-spacing:1px;padding:6px 14px;border:none;background:var(--cyan);color:#000;cursor:pointer}
+    @media(max-width:700px){.nav-links{display:none}.nav-search input{width:120px}}
+
+    .page-header{padding:2.5rem 5% 0;border-bottom:1px solid var(--bdr);background:linear-gradient(180deg,rgba(0,245,255,0.03),transparent)}
+    .breadcrumb{font-family:var(--mono);font-size:0.68rem;color:var(--muted);letter-spacing:1px;margin-bottom:1rem}
+    .breadcrumb a{color:var(--cyan);text-decoration:none}
+    .page-title{font-family:var(--orb);font-size:clamp(1.4rem,3vw,2rem);font-weight:900;color:#fff;letter-spacing:2px;margin-bottom:4px}
+    .page-subtitle{font-family:var(--mono);font-size:0.7rem;color:var(--muted);margin-bottom:1.5rem}
+    .tabs{display:flex}
+    .tab{font-family:var(--orb);font-size:0.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:12px 18px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.2s,border-color 0.2s;white-space:nowrap;text-decoration:none;display:block}
+    .tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+    .tab:hover{color:var(--text)}
+
+    .content{padding:2.5rem 5%;display:grid;grid-template-columns:1fr 300px;gap:2rem}
+    @media(max-width:900px){.content{grid-template-columns:1fr}}
+
+    /* CHART */
+    .chart-card{border:1px solid var(--bdr);background:var(--bg2);padding:1.8rem}
+    .card-title{font-family:var(--orb);font-size:0.7rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1.4rem;display:flex;align-items:center;gap:8px}
+    .card-title::before{content:'';display:block;width:3px;height:14px;background:var(--cyan);box-shadow:var(--gc)}
+    .chart-filters{display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap}
+    .cf-btn{font-family:var(--orb);font-size:0.58rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:5px 12px;border:1px solid var(--bdr);color:var(--muted);background:transparent;cursor:pointer;transition:all 0.2s}
+    .cf-btn.active,.cf-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+    .chart-wrap{width:100%;overflow-x:auto}
+    svg.chart{display:block;width:100%;min-width:420px;height:260px}
+
+    /* RANK TIER LEGEND */
+    .tier-legend{display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--bdr)}
+    .tier-item{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:0.62rem;color:var(--muted)}
+    .tier-dot{width:8px;height:8px;border-radius:50%}
+
+    /* EPISODE TABLE */
+    .episode-table{border:1px solid var(--bdr);overflow:hidden}
+    table{width:100%;border-collapse:collapse}
+    thead tr{background:rgba(0,245,255,0.05);border-bottom:1px solid var(--bdr)}
+    th{font-family:var(--mono);font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left}
+    td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-family:var(--raj);font-size:0.9rem}
+    tbody tr:last-child td{border-bottom:none}
+    tbody tr{transition:background 0.15s}
+    tbody tr:hover{background:rgba(0,245,255,0.03)}
+    .ep-rank{font-family:var(--orb);font-size:0.75rem;color:#fff}
+    .ep-rr{font-family:var(--orb);font-size:0.8rem;color:var(--cyan)}
+    .ep-wr.pos{color:var(--grn)}
+    .ep-wr.neg{color:var(--red)}
+    .ep-change{font-family:var(--orb);font-size:0.75rem}
+    .ep-change.up{color:var(--grn)}
+    .ep-change.dn{color:var(--red)}
+
+    /* SIDEBAR STATS */
+    .sidebar{display:flex;flex-direction:column;gap:1.5rem}
+    .stat-card{border:1px solid var(--bdr);background:var(--bg2);padding:1.6rem}
+    .stat-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+    .stat-row:last-child{border-bottom:none}
+    .stat-lbl{font-family:var(--mono);font-size:0.68rem;color:var(--muted);letter-spacing:1px}
+    .stat-val{font-family:var(--orb);font-size:0.8rem;color:#fff}
+    .stat-val.cy{color:var(--cyan)}
+    .stat-val.gn{color:var(--grn)}
+
+    /* STREAK */
+    .streak-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+    .streak-dot{width:14px;height:14px;border-radius:2px}
+    .streak-dot.w{background:var(--grn)}
+    .streak-dot.l{background:var(--red)}
+    .streak-dot.d{background:var(--muted)}
+  </style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<nav class="z1">
+  <a href="index.html" class="logo">VT<em>RK</em>R</a>
+  <ul class="nav-links">
+    <li><a href="leaderboard.html">Leaderboards</a></li>
+    <li><a href="agents.html">Agents</a></li>
+    <li><a href="live.html">Live</a></li>
+  </ul>
+  <div class="nav-search">
+    <input id="navSearch" type="text" placeholder="Search player..."/>
+    <button onclick="navSearch()">GO</button>
+  </div>
+</nav>
+
+<div class="page-header z1">
+  <div class="breadcrumb" id="breadcrumb"><a href="index.html">Home</a> / Rank History</div>
+  <div class="page-title">RANK HISTORY</div>
+  <div class="page-subtitle">// MMR progression across all episodes</div>
+  <div class="tabs">
+    <a href="profile.html" class="tab">Overview</a>
+    <a href="match-history.html" class="tab">Match History</a>
+    <a href="rank-history.html" class="tab active">Rank History</a>
+  </div>
+</div>
+
+<div class="content z1">
+  <div>
+    <!-- CHART -->
+    <div class="chart-card" style="margin-bottom:1.5rem">
+      <div class="card-title">RR Over Time</div>
+      <div class="chart-filters">
+        <button class="cf-btn active" onclick="activateFilter(this)">Episode 8</button>
+        <button class="cf-btn" onclick="activateFilter(this)">Episode 7</button>
+        <button class="cf-btn" onclick="activateFilter(this)">All Time</button>
+      </div>
+      <div class="chart-wrap">
+        <svg class="chart" id="rrChart" viewBox="0 0 700 240" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#00f5ff"/>
+              <stop offset="100%" stop-color="#ff00cc"/>
+            </linearGradient>
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#00f5ff" stop-opacity="0.2"/>
+              <stop offset="100%" stop-color="#00f5ff" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- grid lines -->
+          <line x1="0" y1="48" x2="700" y2="48" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <line x1="0" y1="96" x2="700" y2="96" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <line x1="0" y1="144" x2="700" y2="144" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <line x1="0" y1="192" x2="700" y2="192" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <!-- Radiant threshold line -->
+          <line x1="0" y1="30" x2="700" y2="30" stroke="rgba(245,230,66,0.3)" stroke-width="1" stroke-dasharray="6,4"/>
+          <text x="6" y="26" font-family="Share Tech Mono,monospace" font-size="9" fill="rgba(245,230,66,0.7)">RADIANT</text>
+          <!-- Area fill -->
+          <path id="areaPath" fill="url(#areaGrad)"/>
+          <!-- Line -->
+          <path id="linePath" fill="none" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Dots rendered by JS -->
+          <g id="dotGroup"></g>
+          <!-- X labels -->
+          <g id="xLabels"></g>
+        </svg>
+      </div>
+      <div class="tier-legend">
+        <div class="tier-item"><div class="tier-dot" style="background:#f5e642"></div>Radiant</div>
+        <div class="tier-item"><div class="tier-dot" style="background:#ff00cc"></div>Immortal</div>
+        <div class="tier-item"><div class="tier-dot" style="background:#a855f7"></div>Diamond</div>
+        <div class="tier-item"><div class="tier-dot" style="background:#00f5ff"></div>Platinum</div>
+      </div>
+    </div>
+
+    <!-- EPISODE TABLE -->
+    <div class="chart-card">
+      <div class="card-title">Episode Breakdown</div>
+      <div class="episode-table">
+        <table>
+          <thead><tr><th>Episode</th><th>Peak Rank</th><th>Peak RR</th><th>Win Rate</th><th>Change</th></tr></thead>
+          <tbody>
+            <tr><td>Episode 8 Act 3</td><td class="ep-rank">👑 Radiant</td><td class="ep-rr">2,841</td><td class="ep-wr pos">64%</td><td class="ep-change up">+Current</td></tr>
+            <tr><td>Episode 8 Act 2</td><td class="ep-rank">👑 Radiant</td><td class="ep-rr">2,901</td><td class="ep-wr pos">62%</td><td class="ep-change up">↑ Peak</td></tr>
+            <tr><td>Episode 8 Act 1</td><td class="ep-rank">💎 Immortal 3</td><td class="ep-rr">1,840</td><td class="ep-wr pos">58%</td><td class="ep-change up">↑ Promoted</td></tr>
+            <tr><td>Episode 7 Act 3</td><td class="ep-rank">💎 Immortal 2</td><td class="ep-rr">1,620</td><td class="ep-wr pos">55%</td><td class="ep-change up">↑ +220 RR</td></tr>
+            <tr><td>Episode 7 Act 2</td><td class="ep-rank">💎 Immortal 1</td><td class="ep-rr">1,400</td><td class="ep-wr neg">49%</td><td class="ep-change dn">↓ -80 RR</td></tr>
+            <tr><td>Episode 7 Act 1</td><td class="ep-rank">💎 Immortal 2</td><td class="ep-rr">1,480</td><td class="ep-wr pos">53%</td><td class="ep-change up">↑ +340 RR</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="stat-card">
+      <div class="card-title">Season Stats</div>
+      <div class="stat-row"><span class="stat-lbl">Current RR</span><span class="stat-val cy">2,841</span></div>
+      <div class="stat-row"><span class="stat-lbl">Peak RR (All Time)</span><span class="stat-val cy">2,901</span></div>
+      <div class="stat-row"><span class="stat-lbl">Current Rank</span><span class="stat-val">👑 Radiant</span></div>
+      <div class="stat-row"><span class="stat-lbl">Leaderboard Pos.</span><span class="stat-val gn">#3 NA</span></div>
+      <div class="stat-row"><span class="stat-lbl">Games This Act</span><span class="stat-val">298</span></div>
+      <div class="stat-row"><span class="stat-lbl">RR Gained</span><span class="stat-val gn">+841</span></div>
+    </div>
+
+    <div class="stat-card">
+      <div class="card-title">Recent Form</div>
+      <div style="margin-bottom:10px;font-family:var(--mono);font-size:0.65rem;color:var(--muted)">Last 20 games</div>
+      <div class="streak-row" id="streakRow"></div>
+      <div style="display:flex;gap:1.5rem;margin-top:1rem">
+        <div><div style="font-family:var(--orb);font-size:1.2rem;color:var(--grn)">13W</div><div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">WINS</div></div>
+        <div><div style="font-family:var(--orb);font-size:1.2rem;color:var(--red)">7L</div><div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">LOSSES</div></div>
+        <div><div style="font-family:var(--orb);font-size:1.2rem;color:var(--cyan)">65%</div><div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">WIN RATE</div></div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="card-title">Rank Milestones</div>
+      <div class="stat-row"><span class="stat-lbl">First Radiant</span><span class="stat-val">Ep 8 Act 1</span></div>
+      <div class="stat-row"><span class="stat-lbl">First Immortal</span><span class="stat-val">Ep 6 Act 2</span></div>
+      <div class="stat-row"><span class="stat-lbl">Longest Win Streak</span><span class="stat-val gn">11 Games</span></div>
+      <div class="stat-row"><span class="stat-lbl">Longest Loss Streak</span><span class="stat-val" style="color:var(--red)">4 Games</span></div>
+    </div>
+  </div>
+</div>
+
+<footer class="z1" style="border-top:1px solid var(--bdr);padding:2rem 5%;text-align:center;background:rgba(0,0,0,0.2)">
+  <p style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);letter-spacing:1px">Not affiliated with Riot Games &mdash; &copy; 2026 VTRACKER</p>
+</footer>
+
+<script>
+  async function api(path){
+    const res=await fetch(`/api/valorant?path=${encodeURIComponent(path)}`);
+    if(!res.ok) throw new Error(`API error ${res.status}`);
+    return res.json();
+  }
+  function rankEmoji(t=''){
+    const s=t.toLowerCase();
+    if(s.includes('radiant'))   return '✨';
+    if(s.includes('immortal'))  return '🔮';
+    if(s.includes('ascendant')) return '🌿';
+    if(s.includes('diamond'))   return '💎';
+    if(s.includes('platinum'))  return '💠';
+    if(s.includes('gold'))      return '🥇';
+    if(s.includes('silver'))    return '🥈';
+    if(s.includes('bronze'))    return '🥉';
+    if(s.includes('iron'))      return '🔩';
+    return '🎮';
+  }
+
+  const params=new URLSearchParams(window.location.search);
+  const raw=params.get('player')||'';
+  const region=(params.get('region')||'na').toLowerCase();
+  const hashIdx=raw.lastIndexOf('#');
+  const pName=raw?hashIdx>-1?raw.slice(0,hashIdx).trim():raw.trim():'';
+  const pTag=raw?hashIdx>-1?raw.slice(hashIdx+1).trim():'NA1':'';
+
+  if(raw){
+    const pp=encodeURIComponent(raw);
+    document.getElementById('breadcrumb').innerHTML=`<a href="index.html">Home</a> / <a href="profile.html?player=${pp}&region=${region}">${pName} #${pTag}</a> / Rank History`;
+    document.querySelector('.page-subtitle').textContent=`// ${pName} #${pTag} — MMR progression`;
+    document.querySelectorAll('.tab').forEach(t=>{
+      if(t.textContent.includes('Overview')) t.onclick=()=>location.href=`profile.html?player=${pp}&region=${region}`;
+      if(t.textContent.includes('Match'))    t.onclick=()=>location.href=`match-history.html?player=${pp}&region=${region}`;
+    });
+  } else {
+    document.querySelector('.page-subtitle').textContent='// Search a player to view rank history';
+  }
+
+  function drawChart(rrData){
+    if(!rrData?.length) return;
+    const W=700,H=240,PAD=20;
+    const min=Math.max(0,Math.min(...rrData)-100);
+    const max=Math.max(...rrData)+100;
+    const range=max-min||1;
+    const xStep=(W-PAD*2)/(rrData.length-1||1);
+    const toY=rr=>PAD+(1-(rr-min)/range)*(H-PAD*2);
+    const pts=rrData.map((rr,i)=>({x:PAD+i*xStep,y:toY(rr)}));
+    document.getElementById('linePath').setAttribute('d',`M ${pts.map(p=>`${p.x},${p.y}`).join(' L ')}`);
+    document.getElementById('areaPath').setAttribute('d',`M ${pts[0].x},${H} L ${pts.map(p=>`${p.x},${p.y}`).join(' L ')} L ${pts[pts.length-1].x},${H} Z`);
+    const dg=document.getElementById('dotGroup');dg.innerHTML='';
+    const step=Math.max(1,Math.floor(pts.length/6));
+    for(let i=0;i<pts.length;i+=step){
+      dg.innerHTML+=`<circle cx="${pts[i].x}" cy="${pts[i].y}" r="4" fill="#00f5ff" stroke="#07070d" stroke-width="2"><title>${rrData[i]} RR</title></circle>`;
+    }
+    const xg=document.getElementById('xLabels');xg.innerHTML='';
+    for(let i=0;i<pts.length;i+=step){
+      xg.innerHTML+=`<text x="${pts[i].x}" y="${H+14}" text-anchor="middle" font-family="Share Tech Mono,monospace" font-size="9" fill="#525870">${i+1}</text>`;
+    }
+  }
+
+  // Draw blank chart on load
+  drawChart(Array(20).fill(0).map((_,i)=>800+i*10));
+
+  async function loadRankHistory(){
+    if(!raw) return;
+    try{
+      // Current MMR
+      const mmr=await api(`/valorant/v2/mmr/${region}/${encodeURIComponent(pName)}/${encodeURIComponent(pTag)}`);
+      if(mmr.status===200&&mmr.data){
+        const cur=mmr.data.current_data;
+        const peak=mmr.data.highest_rank;
+        const sr=document.querySelectorAll('.stat-card:first-child .stat-row .stat-val');
+        if(sr[0]) sr[0].textContent=cur?.ranking_in_tier||'—';
+        if(sr[1]) sr[1].textContent=peak?.ranking_in_tier||'—';
+        if(sr[2]) sr[2].textContent=`${rankEmoji(cur?.currenttierpatched)} ${cur?.currenttierpatched||'Unranked'}`;
+        if(sr[3]) sr[3].className='stat-val gn';
+      }
+
+      // MMR history
+      const hist=await api(`/valorant/v1/mmr-history/${region}/${encodeURIComponent(pName)}/${encodeURIComponent(pTag)}`);
+      if(hist.status!==200||!hist.data?.length){
+        console.warn('No MMR history available');
+        return;
+      }
+
+      const hData=[...hist.data].reverse(); // oldest first
+
+      // Draw RR chart (use tier*100 + rr_in_tier for relative comparison)
+      const rrVals=hData.map(e=>(e.currenttier||0)*100+(e.ranking_in_tier||0));
+      drawChart(rrVals);
+
+      // Recent form (last 20)
+      const recent=hist.data.slice(0,20); // newest first
+      const sr=document.getElementById('streakRow');
+      if(sr){
+        sr.innerHTML=recent.map(e=>{
+          const chg=e.mmr_change_to_last_game||0;
+          const cls=chg>0?'w':chg<0?'l':'d';
+          return `<div class="streak-dot ${cls}" title="${chg>0?'+':''}${chg} RR"></div>`;
+        }).join('');
+      }
+      const rW=recent.filter(e=>(e.mmr_change_to_last_game||0)>0).length;
+      const rL=recent.filter(e=>(e.mmr_change_to_last_game||0)<0).length;
+      const formEls=document.querySelectorAll('.stat-card:nth-child(2) div[style*="1.2rem"]');
+      if(formEls[0]) formEls[0].textContent=`${rW}W`;
+      if(formEls[1]) formEls[1].textContent=`${rL}L`;
+      if(formEls[2]) formEls[2].textContent=`${Math.round((rW/(rW+rL||1))*100)}%`;
+
+      // Episode breakdown
+      const epMap={};
+      hData.forEach(e=>{
+        const ep=e.season_id||'unknown';
+        if(!epMap[ep]) epMap[ep]={ep,peakTier:'',peakRR:0,wins:0,losses:0};
+        if((e.ranking_in_tier||0)>epMap[ep].peakRR){
+          epMap[ep].peakRR=e.ranking_in_tier||0;
+          epMap[ep].peakTier=e.currenttierpatched||'';
+        }
+        if((e.mmr_change_to_last_game||0)>0) epMap[ep].wins++;
+        else if((e.mmr_change_to_last_game||0)<0) epMap[ep].losses++;
+      });
+      const epArr=Object.values(epMap).reverse();
+      const tbody=document.querySelector('tbody');
+      if(tbody&&epArr.length){
+        tbody.innerHTML=epArr.map((ep,i)=>{
+          const wr=Math.round((ep.wins/(ep.wins+ep.losses||1))*100);
+          const next=epArr[i+1];
+          const dir=next?(ep.peakRR>next.peakRR?'up':'dn'):'eq';
+          return `<tr>
+            <td>${(ep.ep||'').replace(/_/g,' ')||'Season '+(i+1)}</td>
+            <td class="ep-rank">${rankEmoji(ep.peakTier)} ${ep.peakTier||'Unranked'}</td>
+            <td class="ep-rr">${ep.peakRR} RR</td>
+            <td class="ep-wr ${wr>=50?'pos':'neg'}">${wr}%</td>
+            <td class="ep-change ${dir}">${dir==='up'?'↑ Higher':dir==='dn'?'↓ Lower':'—'}</td>
+          </tr>`;
+        }).join('');
+      }
+
+      // Milestones
+      const ms=document.querySelectorAll('.stat-card:last-child .stat-row .stat-val');
+      const radiantGames=hData.filter(e=>(e.currenttierpatched||'').toLowerCase().includes('radiant'));
+      const immortalGames=hData.filter(e=>(e.currenttierpatched||'').toLowerCase().includes('immortal'));
+      if(ms[0]) ms[0].textContent=radiantGames.length?new Date((radiantGames[0].date_raw||0)*1000).toLocaleDateString():'Never';
+      if(ms[1]) ms[1].textContent=immortalGames.length?new Date((immortalGames[0].date_raw||0)*1000).toLocaleDateString():'Never';
+      let maxW=0,curW=0,maxL=0,curL=0;
+      hData.forEach(e=>{
+        const chg=e.mmr_change_to_last_game||0;
+        if(chg>0){curW++;curL=0;}else{curL++;curW=0;}
+        if(curW>maxW) maxW=curW;
+        if(curL>maxL) maxL=curL;
+      });
+      if(ms[2]) ms[2].textContent=maxW+' Games';
+      if(ms[3]) ms[3].textContent=maxL+' Games';
+
+    }catch(err){console.error('Rank history error:',err);}
+  }
+
+  loadRankHistory();
+  function activateFilter(btn){document.querySelectorAll('.cf-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+  function navSearch(){const v=document.getElementById('navSearch').value.trim();if(v) location.href=`profile.html?player=${encodeURIComponent(v)}`;}
+  document.getElementById('navSearch').addEventListener('keydown',e=>{if(e.key==='Enter')navSearch();});
+</script>
+</body>
+</html>

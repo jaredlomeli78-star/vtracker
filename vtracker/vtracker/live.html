@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>VTRACKER — Live Match</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#07070d;--bg2:#0d0d1a;--cyan:#00f5ff;--mag:#ff00cc;--yel:#f5e642;--grn:#4ade80;--red:#f87171;--text:#dde1f0;--muted:#525870;--bdr:rgba(0,245,255,0.15);--gc:0 0 18px rgba(0,245,255,0.6);--gm:0 0 18px rgba(255,0,204,0.6);--orb:'Orbitron','Courier New',monospace;--raj:'Rajdhani','Arial Narrow',sans-serif;--mono:'Share Tech Mono','Courier New',monospace;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:var(--raj);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';pointer-events:none;position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);z-index:9999}
+    .grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(0,245,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.03) 1px,transparent 1px);background-size:48px 48px}
+    .z1{position:relative;z-index:1}
+
+    nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 5%;height:64px;background:rgba(7,7,13,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--bdr)}
+    .logo{font-family:var(--orb);font-weight:900;font-size:1.2rem;letter-spacing:4px;color:var(--cyan);text-shadow:var(--gc);text-decoration:none}
+    .logo em{color:var(--mag);text-shadow:var(--gm);font-style:normal}
+    .nav-links{display:flex;gap:2rem;list-style:none}
+    .nav-links a{font-family:var(--raj);font-weight:600;font-size:0.85rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color 0.2s}
+    .nav-links a:hover,.nav-links a.active{color:var(--cyan)}
+    .nav-search{display:flex;border:1px solid rgba(0,245,255,0.2);background:rgba(255,255,255,0.03)}
+    .nav-search input{background:none;border:none;outline:none;font-family:var(--raj);font-size:0.85rem;color:var(--text);padding:6px 14px;width:200px}
+    .nav-search input::placeholder{color:var(--muted)}
+    .nav-search button{font-family:var(--orb);font-size:0.6rem;font-weight:700;letter-spacing:1px;padding:6px 14px;border:none;background:var(--cyan);color:#000;cursor:pointer}
+    @media(max-width:700px){.nav-links{display:none}.nav-search input{width:120px}}
+
+    /* HERO */
+    .page-hero{padding:2.5rem 5%;background:linear-gradient(180deg,rgba(255,0,204,0.04),transparent);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+    .hero-left .page-tag{font-family:var(--mono);font-size:0.65rem;letter-spacing:4px;text-transform:uppercase;color:var(--mag);margin-bottom:6px}
+    .hero-left .page-title{font-family:var(--orb);font-size:clamp(1.4rem,3vw,2rem);font-weight:900;color:#fff;letter-spacing:2px}
+    .hero-left .page-sub{font-family:var(--mono);font-size:0.7rem;color:var(--muted);margin-top:4px}
+    .live-badge{display:flex;align-items:center;gap:8px;padding:10px 20px;border:1px solid rgba(74,222,128,0.3);background:rgba(74,222,128,0.06)}
+    .live-dot{width:8px;height:8px;border-radius:50%;background:var(--grn);box-shadow:0 0 12px var(--grn);animation:pulse 1.4s ease-in-out infinite}
+    .live-text{font-family:var(--orb);font-size:0.75rem;font-weight:700;letter-spacing:2px;color:var(--grn)}
+    .live-count{font-family:var(--mono);font-size:0.65rem;color:var(--muted)}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.85)}}
+
+    /* CONTENT */
+    .content{padding:2.5rem 5%;display:grid;grid-template-columns:1fr 280px;gap:2rem}
+    @media(max-width:900px){.content{grid-template-columns:1fr}}
+
+    /* MATCH CARD */
+    .match-live-card{border:1px solid rgba(74,222,128,0.2);background:var(--bg2);padding:2rem;position:relative;overflow:hidden;margin-bottom:1.5rem}
+    .match-live-card::before{content:'LIVE';position:absolute;top:1rem;right:1rem;font-family:var(--orb);font-size:0.55rem;font-weight:700;letter-spacing:3px;color:var(--grn);border:1px solid rgba(74,222,128,0.3);padding:2px 8px;background:rgba(74,222,128,0.06)}
+    .match-meta{display:flex;align-items:center;gap:1.5rem;margin-bottom:2rem;flex-wrap:wrap}
+    .meta-item{display:flex;flex-direction:column;gap:2px}
+    .meta-val{font-family:var(--orb);font-size:1rem;font-weight:700;color:#fff}
+    .meta-lbl{font-family:var(--mono);font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+    .meta-div{width:1px;height:36px;background:var(--bdr)}
+    .timer{font-family:var(--orb);font-size:1.4rem;font-weight:700;color:var(--cyan);text-shadow:var(--gc)}
+
+    /* TEAMS */
+    .teams-wrap{display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:start}
+    .team-col{display:flex;flex-direction:column;gap:6px}
+    .vs-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:8px;gap:4px}
+    .vs-score{font-family:var(--orb);font-size:2rem;font-weight:900;line-height:1}
+    .team-a-score{color:var(--grn)}
+    .team-b-score{color:var(--red)}
+    .vs-sep{font-family:var(--mono);font-size:0.8rem;color:var(--muted)}
+    .team-header{font-family:var(--orb);font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:6px 12px;margin-bottom:4px}
+    .team-header.attack{color:var(--red);border-left:2px solid var(--red)}
+    .team-header.defend{color:var(--cyan);border-left:2px solid var(--cyan)}
+    .player-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);transition:border-color 0.2s;cursor:pointer}
+    .player-row:hover{border-color:var(--cyan)}
+    .player-row.tracked{border-color:rgba(0,245,255,0.3);background:rgba(0,245,255,0.04)}
+    .pr-agent{font-size:1.2rem;flex-shrink:0}
+    .pr-info{flex:1}
+    .pr-name{font-family:var(--raj);font-weight:700;font-size:0.95rem;color:#fff}
+    .pr-rank{font-family:var(--mono);font-size:0.6rem;color:var(--muted)}
+    .pr-rr{font-family:var(--orb);font-size:0.8rem;color:var(--cyan);text-align:right;flex-shrink:0}
+    .avg-bar{display:flex;align-items:center;justify-content:space-between;padding:12px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);margin-top:8px}
+    .avg-label{font-family:var(--mono);font-size:0.65rem;color:var(--muted)}
+    .avg-val{font-family:var(--orb);font-size:0.9rem;color:var(--cyan)}
+
+    /* WIN PROB */
+    .win-prob{border:1px solid var(--bdr);background:var(--bg2);padding:1.6rem;margin-bottom:1.5rem}
+    .card-title{font-family:var(--orb);font-size:0.7rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1.2rem;display:flex;align-items:center;gap:8px}
+    .card-title::before{content:'';display:block;width:3px;height:14px;background:var(--cyan);box-shadow:var(--gc)}
+    .prob-bar-wrap{display:flex;flex-direction:column;gap:8px;margin-bottom:1rem}
+    .prob-bar{height:20px;display:flex;border-radius:2px;overflow:hidden}
+    .prob-a{background:var(--grn);display:flex;align-items:center;justify-content:center;font-family:var(--orb);font-size:0.65rem;color:#000;font-weight:700}
+    .prob-b{background:var(--red);display:flex;align-items:center;justify-content:center;font-family:var(--orb);font-size:0.65rem;color:#fff;font-weight:700;flex:1}
+    .prob-labels{display:flex;justify-content:space-between}
+    .prob-label{font-family:var(--mono);font-size:0.65rem;color:var(--muted)}
+
+    /* MAP INFO */
+    .map-card{border:1px solid var(--bdr);background:var(--bg2);padding:1.6rem}
+    .map-name{font-family:var(--orb);font-size:1.4rem;font-weight:900;color:#fff;letter-spacing:2px;margin-bottom:4px}
+    .map-info{font-family:var(--mono);font-size:0.65rem;color:var(--muted);margin-bottom:1rem}
+    .map-stat-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+    .map-stat-row:last-child{border:none}
+    .ms-lbl{font-family:var(--mono);font-size:0.68rem;color:var(--muted)}
+    .ms-val{font-family:var(--orb);font-size:0.78rem;color:var(--text)}
+
+    /* RECENT LIVE MATCHES */
+    .live-feed{border:1px solid var(--bdr);background:var(--bg2);padding:1.6rem;margin-bottom:1.5rem}
+    .feed-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:opacity 0.2s}
+    .feed-row:last-child{border:none}
+    .feed-row:hover{opacity:0.7}
+    .feed-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--grn);box-shadow:0 0 6px var(--grn)}
+    .feed-info{flex:1}
+    .feed-player{font-family:var(--raj);font-weight:600;font-size:0.9rem;color:#fff}
+    .feed-map{font-family:var(--mono);font-size:0.62rem;color:var(--muted)}
+    .feed-time{font-family:var(--mono);font-size:0.62rem;color:var(--muted)}
+  </style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<nav class="z1">
+  <a href="index.html" class="logo">VT<em>RK</em>R</a>
+  <ul class="nav-links">
+    <li><a href="leaderboard.html">Leaderboards</a></li>
+    <li><a href="agents.html">Agents</a></li>
+    <li><a href="live.html" class="active">Live</a></li>
+  </ul>
+  <div class="nav-search">
+    <input id="navSearch" type="text" placeholder="Search player..."/>
+    <button onclick="navSearch()">GO</button>
+  </div>
+</nav>
+
+<div class="page-hero z1">
+  <div class="hero-left">
+    <div class="page-tag">// Real-Time</div>
+    <div class="page-title">LIVE MATCH TRACKER</div>
+    <div class="page-sub">Tracking TenZ #NA1 &mdash; Competitive &mdash; Ascent</div>
+  </div>
+  <div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <div>
+        <div class="live-text">LIVE NOW</div>
+        <div class="live-count">138,204 matches in progress</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="content z1">
+  <!-- MAIN -->
+  <div>
+    <div class="match-live-card">
+      <div class="match-meta">
+        <div class="meta-item"><div class="meta-val">Ascent</div><div class="meta-lbl">Map</div></div>
+        <div class="meta-div"></div>
+        <div class="meta-item"><div class="meta-val">Competitive</div><div class="meta-lbl">Mode</div></div>
+        <div class="meta-div"></div>
+        <div class="meta-item"><div class="timer" id="timer">12:48</div><div class="meta-lbl">Match Time</div></div>
+        <div class="meta-div"></div>
+        <div class="meta-item"><div class="meta-val">Round 16</div><div class="meta-lbl">Current Round</div></div>
+        <div class="meta-div"></div>
+        <div class="meta-item"><div class="meta-val" style="color:var(--grn)">Winning</div><div class="meta-lbl">Status</div></div>
+      </div>
+
+      <div class="teams-wrap">
+        <!-- TEAM A -->
+        <div class="team-col">
+          <div class="team-header attack">Attack Side</div>
+          <div class="player-row tracked">
+            <span class="pr-agent">🌀</span>
+            <div class="pr-info"><div class="pr-name">TenZ <span style="color:var(--cyan);font-size:0.65rem">★ YOU</span></div><div class="pr-rank">👑 Radiant</div></div>
+            <div class="pr-rr">2841</div>
+          </div>
+          <div class="player-row">
+            <span class="pr-agent">⚡</span>
+            <div class="pr-info"><div class="pr-name">Zekken</div><div class="pr-rank">👑 Radiant</div></div>
+            <div class="pr-rr">2568</div>
+          </div>
+          <div class="player-row">
+            <span class="pr-agent">🧊</span>
+            <div class="pr-info"><div class="pr-name">FNS</div><div class="pr-rank">💎 Immortal 3</div></div>
+            <div class="pr-rr">1940</div>
+          </div>
+          <div class="player-row">
+            <span class="pr-agent">🌿</span>
+            <div class="pr-info"><div class="pr-name">Marved</div><div class="pr-rank">💎 Immortal 3</div></div>
+            <div class="pr-rr">1880</div>
+          </div>
+          <div class="player-row">
+            <span class="pr-agent">🎯</span>
+            <div class="pr-info"><div class="pr-name">crashies</div><div class="pr-rank">💎 Immortal 2</div></div>
+            <div class="pr-rr">1740</div>
+          </div>
+          <div class="avg-bar">
+            <span class="avg-label">Team Avg RR</span>
+            <span class="avg-val">2,194 RR</span>
+          </div>
+        </div>
+
+        <!-- VS -->
+        <div class="vs-col">
+          <div class="vs-score team-a-score">9</div>
+          <div class="vs-sep">:</div>
+          <div class="vs-score team-b-score">6</div>
+        </div>
+
+        <!-- TEAM B -->
+        <div class="team-col">
+          <div class="team-header defend" style="text-align:right;border-left:none;border-right:2px solid var(--cyan)">Defend Side</div>
+          <div class="player-row">
+            <span class="pr-agent">💀</span>
+            <div class="pr-info"><div class="pr-name">ScreaM</div><div class="pr-rank">👑 Radiant</div></div>
+            <div class="pr-rr">2688</div>
+          </div>
+          <div class="player-row">
+            <span class="pr-agent">🌑</span>
+            <div class="pr-info"><div class="pr-name">Shao</div><div class="pr-rank">👑 Radiant</div></div>
+            <div class="pr-rr">2638</div>
+          </div>
+          <div class="player-row">
+            <span class="pr-agent">🔥</span>
+            <div class="pr-info"><div class="pr-name">ANGE1</div><div class="pr-rank">💎 Immortal 3</div></div>
+            <div class="pr-rr">1920</div>
+          </div>
+          <div class="player-row">
+            <span class="pr-agent">🌿</span>
+            <div class="pr-info"><div class="pr-name">Destrian</div><div class="pr-rank">💎 Immortal 2</div></div>
+            <div class="pr-rr">1810</div>
+          </div>
+          <div class="player-row">
+            <span class="pr-agent">🧊</span>
+            <div class="pr-info"><div class="pr-name">bonkar</div><div class="pr-rank">💎 Immortal 2</div></div>
+            <div class="pr-rr">1780</div>
+          </div>
+          <div class="avg-bar">
+            <span class="avg-label">Team Avg RR</span>
+            <span class="avg-val">2,167 RR</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE FEED -->
+    <div class="live-feed">
+      <div class="card-title">Live Activity Feed</div>
+      <div class="feed-row"><div class="feed-dot"></div><div class="feed-info"><div class="feed-player">Wardell #NA1 &mdash; In Match</div><div class="feed-map">Bind &mdash; Round 22</div></div><span class="feed-time">Live</span></div>
+      <div class="feed-row"><div class="feed-dot"></div><div class="feed-info"><div class="feed-player">nAts #RU1 &mdash; Match Started</div><div class="feed-map">Split &mdash; Round 3</div></div><span class="feed-time">Live</span></div>
+      <div class="feed-row"><div class="feed-dot" style="background:var(--muted);box-shadow:none"></div><div class="feed-info"><div class="feed-player">Derke #EU1 &mdash; Match Ended</div><div class="feed-map">Haven &mdash; Won 13–9</div></div><span class="feed-time">4m ago</span></div>
+      <div class="feed-row"><div class="feed-dot" style="background:var(--muted);box-shadow:none"></div><div class="feed-info"><div class="feed-player">cNed #TR1 &mdash; Match Ended</div><div class="feed-map">Pearl &mdash; Lost 11–13</div></div><span class="feed-time">12m ago</span></div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div>
+    <!-- WIN PROBABILITY -->
+    <div class="win-prob">
+      <div class="card-title">Win Probability</div>
+      <div class="prob-bar-wrap">
+        <div class="prob-bar">
+          <div class="prob-a" style="width:62%">62%</div>
+          <div class="prob-b">38%</div>
+        </div>
+      </div>
+      <div class="prob-labels">
+        <span class="prob-label" style="color:var(--grn)">Your Team</span>
+        <span class="prob-label" style="color:var(--red)">Opponents</span>
+      </div>
+      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--bdr)">
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-family:var(--mono);font-size:0.65rem">
+          <span style="color:var(--muted)">Avg RR Diff</span>
+          <span style="color:var(--grn)">+27 RR Advantage</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-family:var(--mono);font-size:0.65rem">
+          <span style="color:var(--muted)">Score Advantage</span>
+          <span style="color:var(--grn)">+3 Rounds</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-family:var(--mono);font-size:0.65rem">
+          <span style="color:var(--muted)">Historical H2H</span>
+          <span style="color:var(--cyan)">No prior matches</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP INFO -->
+    <div class="map-card">
+      <div class="card-title">Map: Ascent</div>
+      <div class="map-name">ASCENT</div>
+      <div class="map-info">Italy &mdash; Open Mid</div>
+      <div class="map-stat-row"><span class="ms-lbl">Attack Win Rate</span><span class="ms-val">49.8%</span></div>
+      <div class="map-stat-row"><span class="ms-lbl">Defense Win Rate</span><span class="ms-val">50.2%</span></div>
+      <div class="map-stat-row"><span class="ms-lbl">Avg Match Duration</span><span class="ms-val">28m 14s</span></div>
+      <div class="map-stat-row"><span class="ms-lbl">Most Picked Agent</span><span class="ms-val">🌀 Jett</span></div>
+      <div class="map-stat-row"><span class="ms-lbl">TenZ Win Rate Here</span><span class="ms-val" style="color:var(--grn)">68%</span></div>
+    </div>
+  </div>
+</div>
+
+<footer class="z1" style="border-top:1px solid var(--bdr);padding:2rem 5%;text-align:center;background:rgba(0,0,0,0.2)">
+  <p style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);letter-spacing:1px">Not affiliated with Riot Games &mdash; &copy; 2026 VTRACKER</p>
+</footer>
+
+<script>
+  async function api(path){
+    const res=await fetch(`/api/valorant?path=${encodeURIComponent(path)}`);
+    if(!res.ok) throw new Error(`API error ${res.status}`);
+    return res.json();
+  }
+  function rankEmoji(t=''){
+    const s=String(t).toLowerCase();
+    if(s.includes('radiant'))   return '✨';
+    if(s.includes('immortal'))  return '🔮';
+    if(s.includes('ascendant')) return '🌿';
+    if(s.includes('diamond'))   return '💎';
+    if(s.includes('platinum'))  return '💠';
+    if(s.includes('gold'))      return '🥇';
+    if(s.includes('silver'))    return '🥈';
+    if(s.includes('bronze'))    return '🥉';
+    if(s.includes('iron'))      return '🔩';
+    return '🎮';
+  }
+  const AE={
+    Jett:'🌀',Raze:'⚡',Reyna:'💀',Sage:'🌿',Cypher:'🎯',Viper:'🧊',Omen:'🌑',
+    Phoenix:'🔥',Sova:'🏹',Killjoy:'🤖',Breach:'👊',Skye:'🦅',Yoru:'👻',
+    Astra:'⭐',KAYO:'⚔️',Chamber:'🎩',Neon:'💡',Fade:'🌙',Harbor:'🌊',
+    Gekko:'🦎',Deadlock:'🔒',Iso:'🔷',Clove:'🌸',Vyse:'🕷️',Tejo:'🪖'
+  };
+
+  const params=new URLSearchParams(window.location.search);
+  const raw=params.get('player')||'';
+  const region=(params.get('region')||'na').toLowerCase();
+
+  // ── DEFAULT BLANK STATE ───────────────────────────────────
+  function showBlankState(){
+    document.querySelector('.page-title').textContent='LIVE MATCH TRACKER';
+    document.querySelector('.page-sub').textContent='Search a player to check if they are in a live match';
+    document.querySelector('.live-badge').innerHTML=`
+      <div class="live-dot" style="background:var(--muted);box-shadow:none;animation:none"></div>
+      <div>
+        <div class="live-text" style="color:var(--muted)">NO PLAYER</div>
+        <div class="live-count">Enter a player name above</div>
+      </div>`;
+    document.querySelector('.content').innerHTML=`
+      <div style="grid-column:1/-1;text-align:center;padding:4rem 2rem;border:1px solid var(--bdr);background:var(--bg2)">
+        <div style="font-size:3rem;margin-bottom:1.5rem">🔍</div>
+        <div style="font-family:var(--orb);font-size:1rem;color:var(--text);letter-spacing:2px;margin-bottom:8px">SEARCH A PLAYER</div>
+        <div style="font-family:var(--mono);font-size:0.75rem;color:var(--muted);margin-bottom:2rem">Enter a Riot ID to check if they are currently in a live match</div>
+        <div style="display:flex;max-width:500px;margin:0 auto;border:1px solid rgba(0,245,255,0.25);background:rgba(255,255,255,0.04)">
+          <input id="liveSearchInput" type="text" placeholder="PlayerName #TAG" style="flex:1;background:none;border:none;outline:none;font-family:var(--raj);font-size:1rem;color:var(--text);padding:14px 18px"/>
+          <select id="liveRegionSelect" style="background:rgba(0,245,255,0.06);border:none;border-left:1px solid rgba(0,245,255,0.2);color:var(--cyan);font-family:var(--orb);font-size:0.65rem;padding:0 14px;outline:none;cursor:pointer">
+            <option value="na">NA</option><option value="eu">EU</option><option value="ap">AP</option>
+            <option value="kr">KR</option><option value="br">BR</option><option value="latam">LATAM</option>
+          </select>
+          <button onclick="searchLive()" style="font-family:var(--orb);font-size:0.65rem;font-weight:700;letter-spacing:2px;padding:0 24px;border:none;background:var(--cyan);color:#000;cursor:pointer">CHECK</button>
+        </div>
+      </div>`;
+    document.getElementById('liveSearchInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')searchLive();});
+  }
+
+  function searchLive(){
+    const val=document.getElementById('liveSearchInput')?.value?.trim();
+    const reg=document.getElementById('liveRegionSelect')?.value||'na';
+    if(val) location.href=`live.html?player=${encodeURIComponent(val)}&region=${reg}`;
+  }
+
+  // ── NOT IN MATCH STATE ────────────────────────────────────
+  function showNotInMatch(displayName){
+    document.querySelector('.page-title').textContent='NOT IN MATCH';
+    document.querySelector('.page-sub').textContent=`${displayName} is not currently in a live game`;
+    document.querySelector('.live-badge').innerHTML=`
+      <div class="live-dot" style="background:var(--muted);box-shadow:none;animation:none"></div>
+      <div>
+        <div class="live-text" style="color:var(--muted)">OFFLINE</div>
+        <div class="live-count">${displayName} is not in a match</div>
+      </div>`;
+    document.querySelector('.content').innerHTML=`
+      <div style="grid-column:1/-1;text-align:center;padding:4rem 2rem;border:1px solid var(--bdr);background:var(--bg2)">
+        <div style="font-size:3rem;margin-bottom:1rem">😴</div>
+        <div style="font-family:var(--orb);font-size:1rem;color:var(--muted);letter-spacing:2px">NOT IN A MATCH</div>
+        <div style="font-family:var(--mono);font-size:0.75rem;color:var(--muted);margin-top:8px;margin-bottom:2rem">${displayName} is not currently playing</div>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+          <a href="profile.html?player=${encodeURIComponent(raw)}&region=${region}" style="font-family:var(--orb);font-size:0.65rem;letter-spacing:2px;color:var(--cyan);text-decoration:none;padding:10px 22px;border:1px solid var(--cyan)">VIEW PROFILE</a>
+          <a href="match-history.html?player=${encodeURIComponent(raw)}&region=${region}" style="font-family:var(--orb);font-size:0.65rem;letter-spacing:2px;color:var(--muted);text-decoration:none;padding:10px 22px;border:1px solid var(--bdr)">MATCH HISTORY</a>
+        </div>
+      </div>`;
+  }
+
+  // ── LIVE MATCH STATE ─────────────────────────────────────
+  function renderMatch(match, displayName){
+    const map=match.map?.name||match.metadata?.map||'Unknown';
+    const mode=match.metadata?.queue||match.metadata?.mode||'Competitive';
+    const server=match.metadata?.server||region.toUpperCase();
+
+    document.querySelector('.page-title').textContent='LIVE MATCH';
+    document.querySelector('.page-sub').textContent=`${displayName} — ${mode} — ${map}`;
+    document.querySelector('.live-badge').innerHTML=`
+      <div class="live-dot"></div>
+      <div>
+        <div class="live-text">LIVE NOW</div>
+        <div class="live-count">${displayName} is in a match</div>
+      </div>`;
+
+    const players=match.players||[];
+    const teamRed=players.filter(p=>p.teamId==='Red'||p.team==='Red');
+    const teamBlue=players.filter(p=>p.teamId==='Blue'||p.team==='Blue');
+
+    function avgRR(team){
+      const rrs=team.map(p=>p.currenttier_patched_rr||p.ranking_in_tier||0).filter(r=>r>0);
+      return rrs.length?Math.round(rrs.reduce((a,b)=>a+b,0)/rrs.length):0;
+    }
+
+    function teamHTML(team,label,side){
+      return `<div class="team-col">
+        <div class="team-header ${side}">${label}</div>
+        ${team.map(p=>{
+          const n=p.name||p.gameName||'Unknown';
+          const tg=p.tag||p.tagLine||'';
+          const ag=p.character||p.agent||'Unknown';
+          const tier=p.currenttierpatched||p.rank||'Unknown';
+          const rr=p.ranking_in_tier||0;
+          const isTracked=n.toLowerCase()===displayName.split('#')[0].toLowerCase().trim();
+          return `<div class="player-row ${isTracked?'tracked':''}" onclick="location.href='profile.html?player=${encodeURIComponent(n+(tg?' #'+tg:''))}&region=${region}'" style="cursor:pointer">
+            <span class="pr-agent">${AE[ag]||'🎮'}</span>
+            <div class="pr-info">
+              <div class="pr-name">${n}${isTracked?' <span style="color:var(--cyan);font-size:0.65rem">★ YOU</span>':''}</div>
+              <div class="pr-rank">${rankEmoji(tier)} ${tier}</div>
+            </div>
+            <div class="pr-rr">${rr} RR</div>
+          </div>`;
+        }).join('')}
+        <div class="avg-bar"><span class="avg-label">Team Avg RR</span><span class="avg-val">${avgRR(team)} RR</span></div>
+      </div>`;
+    }
+
+    const avgA=avgRR(teamRed)||1200, avgB=avgRR(teamBlue)||1200;
+    const probA=Math.round((avgA/(avgA+avgB))*100), probB=100-probA;
+
+    document.querySelector('.content').innerHTML=`
+      <div>
+        <div class="match-live-card">
+          <div class="match-meta">
+            <div class="meta-item"><div class="meta-val">${map}</div><div class="meta-lbl">Map</div></div>
+            <div class="meta-div"></div>
+            <div class="meta-item"><div class="meta-val">${mode}</div><div class="meta-lbl">Mode</div></div>
+            <div class="meta-div"></div>
+            <div class="meta-item"><div class="timer" id="timer">00:00</div><div class="meta-lbl">Match Time</div></div>
+            <div class="meta-div"></div>
+            <div class="meta-item"><div class="meta-val">${server}</div><div class="meta-lbl">Server</div></div>
+          </div>
+          <div class="teams-wrap">
+            ${teamHTML(teamRed,'Attack Side','attack')}
+            <div class="vs-col">
+              <div class="vs-score team-a-score">—</div>
+              <div class="vs-sep">:</div>
+              <div class="vs-score team-b-score">—</div>
+            </div>
+            ${teamHTML(teamBlue,'Defend Side','defend')}
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="win-prob" style="border:1px solid var(--bdr);background:var(--bg2);padding:1.6rem;margin-bottom:1.5rem">
+          <div style="font-family:var(--orb);font-size:0.7rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1.2rem;display:flex;align-items:center;gap:8px"><span style="display:block;width:3px;height:14px;background:var(--cyan);box-shadow:var(--gc)"></span>Win Probability</div>
+          <div style="height:20px;display:flex;border-radius:2px;overflow:hidden;margin-bottom:8px">
+            <div style="width:${probA}%;background:var(--grn);display:flex;align-items:center;justify-content:center;font-family:var(--orb);font-size:0.65rem;color:#000;font-weight:700">${probA}%</div>
+            <div style="flex:1;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:var(--orb);font-size:0.65rem;color:#fff;font-weight:700">${probB}%</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.65rem">
+            <span style="color:var(--grn)">Your Team (${avgA} avg RR)</span>
+            <span style="color:var(--red)">Opponents (${avgB} avg RR)</span>
+          </div>
+        </div>
+        <div style="border:1px solid var(--bdr);background:var(--bg2);padding:1.6rem">
+          <div style="font-family:var(--orb);font-size:0.7rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;display:flex;align-items:center;gap:8px"><span style="display:block;width:3px;height:14px;background:var(--cyan)"></span>Map Info</div>
+          <div style="font-family:var(--orb);font-size:1.4rem;font-weight:900;color:#fff;letter-spacing:2px">${map.toUpperCase()}</div>
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);margin-top:4px;margin-bottom:1rem">${mode} — ${server}</div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><span style="font-family:var(--mono);font-size:0.68rem;color:var(--muted)">RR Advantage</span><span style="font-family:var(--orb);font-size:0.78rem;color:${avgA>avgB?'var(--grn)':'var(--red)'}">${avgA>avgB?'+':''}${avgA-avgB} RR</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-family:var(--mono);font-size:0.68rem;color:var(--muted)">Win Prediction</span><span style="font-family:var(--orb);font-size:0.78rem;color:${probA>50?'var(--grn)':'var(--red)'}">${probA>50?'Favored':'Underdog'}</span></div>
+        </div>
+      </div>`;
+
+    // Live timer
+    let seconds=0;
+    setInterval(()=>{
+      seconds++;
+      const t=document.getElementById('timer');
+      if(t) t.textContent=`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
+    },1000);
+  }
+
+  // ── MAIN LOADER ───────────────────────────────────────────
+  async function loadLiveMatch(){
+    if(!raw){ showBlankState(); return; }
+
+    const hashIdx=raw.lastIndexOf('#');
+    const name=hashIdx>-1?raw.slice(0,hashIdx).trim():raw.trim();
+    const tag=hashIdx>-1?raw.slice(hashIdx+1).trim():'NA1';
+    const displayName=`${name} #${tag}`;
+
+    document.querySelector('.page-title').textContent='CHECKING...';
+    document.querySelector('.page-sub').textContent=`Looking up ${displayName}`;
+    document.querySelector('.content').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:4rem;font-family:var(--mono);font-size:0.8rem;color:var(--cyan)">// Checking live match status...</div>`;
+
+    try{
+      // Check active match via Henrik Dev
+      const active=await api(`/valorant/v1/active/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
+
+      if(active.status===200&&active.data&&active.data.players?.length){
+        renderMatch(active.data, displayName);
+      } else {
+        showNotInMatch(displayName);
+      }
+    }catch(err){
+      // Active match endpoint may return 404 if not in match — that's expected
+      showNotInMatch(displayName);
+    }
+  }
+
+  function navSearch(){
+    const v=document.getElementById('navSearch').value.trim();
+    if(v) location.href=`live.html?player=${encodeURIComponent(v)}&region=${region}`;
+  }
+  document.getElementById('navSearch').addEventListener('keydown',e=>{if(e.key==='Enter')navSearch();});
+
+  loadLiveMatch();
+</script>
+</body>
+</html>
